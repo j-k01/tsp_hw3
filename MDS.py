@@ -29,7 +29,7 @@ def find_shortest_path_bruteforce(distance_matrix):
     return shortest_path, min_distance
 
 
-def insertion_heuristic(distance_matrix):
+def insertion(distance_matrix):
     path = [0, 1]
 
     # Iterate over the remaining nodes
@@ -55,13 +55,14 @@ def nearest_neighbor(distance_matrix, start_node=0):
     visited = [False] * n
     path = [start_node]
     visited[start_node] = True
-
     current_node = start_node
-    while len(path) < n:
-        next_node = np.argmin([distance_matrix[current_node][j] if not visited[j] else np.inf for j in range(n)])
-        path.append(next_node)
-        visited[next_node] = True
-        current_node = next_node
+
+    for _ in range(n - 1):
+        unvisited_neighbors = [j for j in range(n) if not visited[j]] #just rebuild it every time
+        nearest_neighbor = min(unvisited_neighbors, key=lambda x: distance_matrix[current_node][x])
+        path.append(nearest_neighbor)
+        visited[nearest_neighbor] = True
+        current_node = nearest_neighbor
     
     path.append(start_node)  # Returning to the start node
     return path
@@ -95,10 +96,14 @@ def resolve_opt2(path, distance_matrix):
     while improved:
         improved = False
         for i in range(n):
-            for j in range(i + 2, n + (i > 0)):
+            for j in range(i + 2, n):
                 # Check the potential improvement with a 2-opt swap
-                old_distance = distance_matrix[path[i]][path[i+1]] + distance_matrix[path[j]][path[(j+1) % n]]
-                new_distance = distance_matrix[path[i]][path[j]] + distance_matrix[path[i+1]][path[(j+1) % n]]
+                next_j = j + 1
+                if next_j == n:
+                    next_j = 0
+
+                old_distance = distance_matrix[path[i]][path[i+1]] + distance_matrix[path[j]][path[next_j]]
+                new_distance = distance_matrix[path[i]][path[j]] + distance_matrix[path[i+1]][path[next_j]]
                 cycle = cycle + 1
                 # Update the path if there's an improvement
                 if new_distance < old_distance:
@@ -114,6 +119,7 @@ def resolve_opt2(path, distance_matrix):
     return path
 
 
+
 def calculate_total_distance2(tour, distance_matrix):
     total_dist = distance_matrix[tour[-1]][tour[0]]  # Distance from last to first node for a cycle
     for i in range(len(tour) - 1):
@@ -123,7 +129,7 @@ def calculate_total_distance2(tour, distance_matrix):
 def simulated_annealing(distance_matrix, current_path=None):
     n = len(distance_matrix)
 
-    # Use the provided initial tour or generate a random one
+    # use a random path if none is provided
     if (current_path == None):
         current_path = list(range(n))
         random.shuffle(current_path)
@@ -170,7 +176,7 @@ distances_m = read_distance_matrix(file_path)
 
 path1 = nearest_neighbor(distances_m)
 path2 = resolve_opt2(path1.copy(), distances_m)
-path3 = insertion_heuristic(distances_m)
+path3 = insertion(distances_m)
 
 
 best_distance = float('inf')
